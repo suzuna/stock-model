@@ -64,7 +64,7 @@ $$
 r_t = \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma)
 $$
 
-[^5]: 両辺期待値を取り、$E[r_t] = E[\alpha_t] + E[\beta_t r_t^{M}] = \alpha_t + \beta_t E[r_t^{M}]$です。$E[r_t]=0, E[r_t^{M}]=0$であれば$E[\alpha_t]=0$となります。$E[r_t]=0, E[r_t^{M}]=0$であることは多くの実証研究で示されていますし（例えば、T. Andersen, et al. (2001) The distribution of realized stock return volatility, Journal of Financial Economics 61, 43-76）、$\alpha_t$を入れた式でベータ値を推定すると、大抵の場合$\alpha_t$は有意なパラメータではありません。
+[^5]: 両辺期待値を取り、$E[r_t] = E[\alpha_t] + E[\beta_t r_t^{M}] = \alpha_t + \beta_t E[r_t^{M}]$です。$E[r_t]=0, E[r_t^{M}]=0$であれば$E[\alpha_t]=0$となります。$E[r_t]=0, E[r_t^{M}]=0$であることは多くの実証研究で示されていますし（例えば、T. Andersen, et al. (2001) The distribution of realized stock return volatility, Journal of Financial Economics 61, 43-76.）、$\alpha_t$を入れた式でベータ値を推定すると、大抵の場合$\alpha_t$は有意なパラメータではありません。
 
 $\beta_t$は、過去一定期間（1年～3年程度）の$r_t, r_t^{M}$を用いて回帰で求められます。ローリング回帰することで各$t$における$\beta_t$を得るというのがベータ値の簡単な推定方法です。
 
