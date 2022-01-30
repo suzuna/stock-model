@@ -213,7 +213,7 @@ pre code {
 <p><span class="math inline">\(S_t, S_t^{M}\)</span>をそれぞれ<span class="math inline">\(t\)</span>日における個別株式の終値と市場全体の指数<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>の終値とするとき、<span class="math inline">\(t\)</span>日における個別株式の対前日変動率と市場全体の指数の対前日変動率<span class="math inline">\(r_t, r_t^{M}\)</span>は以下のように計算されます<a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>。</p>
 <p><span class="math display">\[\begin{align}
 r_t &amp;= \log S_t  - \log S_{t-1} \\
-r_t^{M} &amp;= \log r_t^{M} - \log r_{t-1}^{M}
+r_t^{M} &amp;= \log S_t^{M} - \log S_{t-1}^{M}
 \end{align}\]</span></p>
 <p>この時、ベータ値は、下記の<span class="math inline">\(\beta_t\)</span>です。</p>
 <p><span class="math display">\[
@@ -337,7 +337,7 @@ res &lt;- full_join(df,res,by=&quot;date&quot;) %&gt;%
 <li>上のグラフが東京電力株のベータ値（フィルタ化推定量）、下のグラフは東京電力株の株価（終値）です。</li>
 <li>上のグラフは赤い線がベータ値のフィルタ化推定量、青いバンドはその95%信頼区間です。</li>
 <li>横軸の数字は年の下2桁です。</li>
-<li>最初の方は推定されたベータの値が暴れていますので、最初の50日分を除外しています。</li>
+<li>最初の方は推定されたベータの値が安定していないので、最初の50日分を除外しています。</li>
 </ul>
 <pre class="r"><code>plot_beta &lt;- res %&gt;%
   select(date,filtered,filtered_upper,filtered_lower) %&gt;%
