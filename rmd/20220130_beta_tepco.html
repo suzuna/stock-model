@@ -217,17 +217,17 @@ r_t^{M} &amp;= \log S_t^{M} - \log S_{t-1}^{M}
 \end{align}\]</span></p>
 <p>この時、ベータ値は、下記の<span class="math inline">\(\beta_t\)</span>です。</p>
 <p><span class="math display">\[
-r_t = \alpha_t + \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma)
+r_t = \alpha_t + \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2)
 \]</span></p>
 <p><span class="math inline">\(\alpha_t\)</span>は有意に正でも負でもないことが実証的に知られている<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a>ことから、<span class="math inline">\(\alpha_t=0\)</span>とした下記のモデルを用い、この<span class="math inline">\(\beta_t\)</span>とすることが一般的です。</p>
 <p><span class="math display">\[
-r_t = \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma)
+r_t = \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2)
 \]</span></p>
 <p><span class="math inline">\(\beta_t\)</span>は、過去一定期間（1年～3年程度）の<span class="math inline">\(r_t, r_t^{M}\)</span>を用いて回帰で求められます。ローリング回帰することで各<span class="math inline">\(t\)</span>における<span class="math inline">\(\beta_t\)</span>を得るというのがベータ値の簡単な推定方法です。</p>
 <p>しかしこの方法は、ローリング回帰に用いた標本期間の間ではベータ値が変化しないことを前提としています。ベータ値は日次で変動するため、より精緻に求めるには下記の状態空間モデルから推定します<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a>。このベータ値は時変ベータと呼ばれることもあります。</p>
 <p><span class="math display">\[\begin{align}
-観測方程式: r_t &amp;= \beta_t r_t^{M} + e_t, \quad e_t \sim \mathcal{N}(0, \sigma^{e}) \\
-状態方程式: \beta_t &amp;= \beta_{t-1} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^{\epsilon})
+観測方程式: r_t &amp;= \beta_t r_t^{M} + e_t, \quad e_t \sim \mathcal{N}(0, \sigma_{e}^2) \\
+状態方程式: \beta_t &amp;= \beta_{t-1} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma_{\epsilon}^2)
 \end{align}\]</span></p>
 <p>状態空間モデルは、時系列データにおいて動的な時系列回帰を行う目的で用いられることがよくありますね。</p>
 <p>これは線形・ガウスの状態空間モデルです。線形・ガウスなので、行列計算で高速にパラメータが求まるカルマンフィルタ<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a>を適用することができます。</p>
@@ -284,7 +284,7 @@ df</code></pre>
 <div id="ベータ値の推定" class="section level3">
 <h3>ベータ値の推定</h3>
 <p>RでカルマンフィルタをするにはdlmとKFASがありますが、今回はKFASを用いています。</p>
-<p>上記の観測方程式・状態方程式を定義します。状態誤差の分散（<span class="math inline">\(\sigma^{\epsilon}\)</span>）と観測誤差の分散（<span class="math inline">\(\sigma^{e}\)</span>）は未知数です。カルマンフィルタの尤度関数を最大化するような状態誤差の分散と観測誤差の分散を求めるために、inits_bestで最適化関数optimのための初期値を与え、その下で尤度関数を最大にするように計算しています（fitSSMの中ではoptimが回っています）。</p>
+<p>上記の観測方程式・状態方程式を定義します。状態誤差の分散（<span class="math inline">\(\sigma_{\epsilon}^2\)</span>）と観測誤差の分散（<span class="math inline">\(\sigma_{e}^2\)</span>）は未知数です。カルマンフィルタの尤度関数を最大化するような状態誤差の分散と観測誤差の分散を求めるために、inits_bestで最適化関数optimのための初期値を与え、その下で尤度関数を最大にするように計算しています（fitSSMの中ではoptimが回っています）。</p>
 <p>初期値によっては局所解に落ちるので、本当は複数のinitsを与えて尤度を比較する方が良いですが、下記のコードのinits_bestは一旦決め打ちにしています。なお、initsをグリッドサーチで回すコードはリポジトリにあります。</p>
 <pre class="r"><code># KFASでベータの推定 --------------------------------------------------------------------
 # 状態空間モデルの定義

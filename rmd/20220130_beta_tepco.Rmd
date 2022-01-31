@@ -55,13 +55,13 @@ r_t^{M} &= \log S_t^{M} - \log S_{t-1}^{M}
 この時、ベータ値は、下記の$\beta_t$です。
 
 $$
-r_t = \alpha_t + \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma)
+r_t = \alpha_t + \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2)
 $$
 
 $\alpha_t$は有意に正でも負でもないことが実証的に知られている[^5]ことから、$\alpha_t=0$とした下記のモデルを用い、この$\beta_t$とすることが一般的です。
 
 $$
-r_t = \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma)
+r_t = \beta_t r_t^{M} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^2)
 $$
 
 [^5]: 両辺期待値を取り、$E[r_t] = E[\alpha_t] + E[\beta_t r_t^{M}] = \alpha_t + \beta_t E[r_t^{M}]$です。$E[r_t]=0, E[r_t^{M}]=0$であれば$E[\alpha_t]=0$となります。$E[r_t]=0, E[r_t^{M}]=0$であることは多くの実証研究で示されていますし（例えば、T. Andersen, et al. (2001) The distribution of realized stock return volatility, Journal of Financial Economics 61, 43-76.）、$\alpha_t$を入れた式でベータ値を推定すると、大抵の場合$\alpha_t$は有意なパラメータではありません。
@@ -71,8 +71,8 @@ $\beta_t$は、過去一定期間（1年～3年程度）の$r_t, r_t^{M}$を用�
 しかしこの方法は、ローリング回帰に用いた標本期間の間ではベータ値が変化しないことを前提としています。ベータ値は日次で変動するため、より精緻に求めるには下記の状態空間モデルから推定します[^6]。このベータ値は時変ベータと呼ばれることもあります。
 
 \begin{align}
-観測方程式: r_t &= \beta_t r_t^{M} + e_t, \quad e_t \sim \mathcal{N}(0, \sigma^{e}) \\
-状態方程式: \beta_t &= \beta_{t-1} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma^{\epsilon})
+観測方程式: r_t &= \beta_t r_t^{M} + e_t, \quad e_t \sim \mathcal{N}(0, \sigma_{e}^2) \\
+状態方程式: \beta_t &= \beta_{t-1} + \epsilon_t, \quad \epsilon_t \sim \mathcal{N}(0, \sigma_{\epsilon}^2)
 \end{align}
 
 状態空間モデルは、時系列データにおいて動的な時系列回帰を行う目的で用いられることがよくありますね。
@@ -127,7 +127,7 @@ df
 
 RでカルマンフィルタをするにはdlmとKFASがありますが、今回はKFASを用いています。
 
-上記の観測方程式・状態方程式を定義します。状態誤差の分散（$\sigma^{\epsilon}$）と観測誤差の分散（$\sigma^{e}$）は未知数です。カルマンフィルタの尤度関数を最大化するような状態誤差の分散と観測誤差の分散を求めるために、inits_bestで最適化関数optimのための初期値を与え、その下で尤度関数を最大にするように計算しています（fitSSMの中ではoptimが回っています）。
+上記の観測方程式・状態方程式を定義します。状態誤差の分散（$\sigma_{\epsilon}^2$）と観測誤差の分散（$\sigma_{e}^2$）は未知数です。カルマンフィルタの尤度関数を最大化するような状態誤差の分散と観測誤差の分散を求めるために、inits_bestで最適化関数optimのための初期値を与え、その下で尤度関数を最大にするように計算しています（fitSSMの中ではoptimが回っています）。
 
 初期値によっては局所解に落ちるので、本当は複数のinitsを与えて尤度を比較する方が良いですが、下記のコードのinits_bestは一旦決め打ちにしています。なお、initsをグリッドサーチで回すコードはリポジトリにあります。
 
