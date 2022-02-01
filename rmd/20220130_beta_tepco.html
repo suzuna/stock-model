@@ -204,7 +204,7 @@ pre code {
 <li><a href="https://media.rakuten-sec.net/articles/-/2819">ベータ値</a>とは、市場平均株価（TOPIXや日経平均株価など）の変動と比べて個別株式の変動がどの程度大きいかを表す指標です。1より大きければその銘柄は市場平均より変動が激しく、1より小さければ市場平均より変動が穏やかなことを示します。市場平均に対するリスクの大きさを意味します。</li>
 </ul></li>
 <li>2011年の東日本大震災と原発事故以前は、東京電力株はディフェンシブ銘柄（内需株。一般に値動きが穏やかでベータが1を下回ることが多い）の代表格でしたが、東日本大震災で急上昇し、それ以降値動きが荒くリスクが高い様子が見て取れました。</li>
-<li><a href="https://github.com/suzuna/stock_beta">使用したコード</a></li>
+<li><a href="https://github.com/suzuna/stock-model">使用したコード</a></li>
 </ul>
 </div>
 <div id="ベータ値の定式化とその推定方法" class="section level2">
@@ -306,7 +306,7 @@ fit &lt;- fitSSM(mod,inits=inits_best,method=&quot;BFGS&quot;)
 kfs &lt;- KFS(fit$model,filtering=c(&quot;state&quot;,&quot;mean&quot;),smoothing=c(&quot;state&quot;,&quot;mean&quot;))</code></pre>
 <p>ベータ値のフィルタ化推定量と平滑化推定量の両方について、推定値と与えた信頼区間での幅を求めます。</p>
 <pre class="r"><code># 推定されたベータ値を取り出しプロットする --------------------------------------------------------------------
-extract_param &lt;- function(kfs,param_name,date,confidence_interval=0.95) {
+extract_param_kfas &lt;- function(kfs,param_name,confidence_interval=0.95) {
   idx_param_of_std_error &lt;- which(colnames(kfs$att)==param_name)
   upper &lt;- confidence_interval+(1-confidence_interval)/2
   lower &lt;- (1-confidence_interval)/2
@@ -316,7 +316,6 @@ extract_param &lt;- function(kfs,param_name,date,confidence_interval=0.95) {
     smoothed=as.numeric(kfs$alphahat[,param_name]),
     std_error_smoothed=sqrt(kfs$V[idx_param_of_std_error,idx_param_of_std_error,])
   ) %&gt;% 
-    add_column(date=date,.before=1) %&gt;% 
     mutate(
       filtered_upper=filtered+qnorm(upper)*std_error_filtered,
       filtered_lower=filtered+qnorm(lower)*std_error_filtered,
@@ -325,7 +324,8 @@ extract_param &lt;- function(kfs,param_name,date,confidence_interval=0.95) {
     )
 }
 
-res &lt;- extract_param(kfs,&quot;ret_topix&quot;,df$date,0.95)
+res &lt;- extract_param_kfas(kfs,&quot;ret_topix&quot;,0.95) %&gt;% 
+  add_column(date=df$date,.before=1)
 res &lt;- full_join(df,res,by=&quot;date&quot;) %&gt;% 
   slice(51:nrow(.))</code></pre>
 </div>
