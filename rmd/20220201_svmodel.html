@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<meta charset="utf-8" />
+<meta name="generator" content="pandoc" />
+<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
+
+
+
+<meta name="date" content="2022-02-01" />
+
+<title>TOPIXのボラティリティをStanで推定する</title>
+
+<script src="libs/header-attrs-2.11/header-attrs.js"></script>
+<script src="libs/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link href="libs/bootstrap-3.3.5/css/bootstrap.min.css" rel="stylesheet" />
+<script src="libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
+<script src="libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
+<script src="libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
+<script src="libs/navigation-1.1/tabsets.js"></script>
+<script src="libs/navigation-1.1/codefolding.js"></script>
+<link href="libs/highlightjs-9.12.0/default.css" rel="stylesheet" />
+<script src="libs/highlightjs-9.12.0/highlight.js"></script>
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
+<script type="text/javascript">
+if (window.hljs) {
+  hljs.configure({languages: []});
+  hljs.initHighlightingOnLoad();
+  if (document.readyState && document.readyState === "complete") {
+    window.setTimeout(function() { hljs.initHighlighting(); }, 0);
+  }
+}
+</script>
+
+
+
+
+
+<link rel="stylesheet" href="main.css" type="text/css" />
+
+
+
+<style type = "text/css">
+.main-container {
+  max-width: 940px;
+  margin-left: auto;
+  margin-right: auto;
+}
+img {
+  max-width:100%;
+}
+.tabbed-pane {
+  padding-top: 12px;
+}
+.html-widget {
+  margin-bottom: 20px;
+}
+button.code-folding-btn:focus {
+  outline: none;
+}
+summary {
+  display: list-item;
+}
+pre code {
+  padding: 0;
+}
+</style>
+
+
+
+<!-- tabsets -->
+
+<style type="text/css">
+.tabset-dropdown > .nav-tabs {
+  display: inline-table;
+  max-height: 500px;
+  min-height: 44px;
+  overflow-y: auto;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+.tabset-dropdown > .nav-tabs > li.active:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li.active:before {
+  content: "&#xe258;";
+  border: none;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open:before {
+  content: "";
+  font-family: 'Glyphicons Halflings';
+  display: inline-block;
+  padding: 10px;
+  border-right: 1px solid #ddd;
+}
+
+.tabset-dropdown > .nav-tabs > li.active {
+  display: block;
+}
+
+.tabset-dropdown > .nav-tabs > li > a,
+.tabset-dropdown > .nav-tabs > li > a:focus,
+.tabset-dropdown > .nav-tabs > li > a:hover {
+  border: none;
+  display: inline-block;
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.tabset-dropdown > .nav-tabs.nav-tabs-open > li {
+  display: block;
+  float: none;
+}
+
+.tabset-dropdown > .nav-tabs > li {
+  display: none;
+}
+</style>
+
+<!-- code folding -->
+<style type="text/css">
+.code-folding-btn { margin-bottom: 4px; }
+</style>
+
+
+
+
+</head>
+
+<body>
+
+
+<div class="container-fluid main-container">
+
+
+
+
+<div id="header">
+
+<div class="btn-group pull-right float-right">
+<button type="button" class="btn btn-default btn-xs btn-secondary btn-sm dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false"><span>Code</span> <span class="caret"></span></button>
+<ul class="dropdown-menu dropdown-menu-right" style="min-width: 50px;">
+<li><a id="rmd-show-all-code" href="#">Show All Code</a></li>
+<li><a id="rmd-hide-all-code" href="#">Hide All Code</a></li>
+</ul>
+</div>
+
+
+
+<h1 class="title toc-ignore">TOPIXのボラティリティをStanで推定する</h1>
+<h4 class="author"></h4>
+<h4 class="date">2022-02-01</h4>
+
+</div>
+
+<div id="TOC">
+<ul>
+<li><a href="#概要">概要</a></li>
+<li><a href="#ボラティリティの定式化とその推定">ボラティリティの定式化とその推定</a></li>
+<li><a href="#実装">実装</a>
+<ul>
+<li><a href="#データの整形">データの整形</a></li>
+<li><a href="#stanによるコード">Stanによるコード</a></li>
+<li><a href="#モデルの推定と結果の抽出">モデルの推定と結果の抽出</a></li>
+</ul></li>
+<li><a href="#結果">結果</a></li>
+</ul>
+</div>
+
+<div id="概要" class="section level2">
+<h2>概要</h2>
+<ul>
+<li>非線形な状態空間モデルであるStochastic Volatility (SV) モデルを用いて、TOPIXのボラティリティをStanで推定しました。
+<ul>
+<li>ボラティリティとは、株式などの金融商品の価格の変動の大きさを表す値です。</li>
+</ul></li>
+<li>推定されたボラティリティは、2009年のリーマンショックと、2011年の東日本大震災、2020年のコロナ禍初期で非常に高まっていることを確認できました。</li>
+<li><a href="https://github.com/suzuna/stock-model">使用したコード</a></li>
+</ul>
+</div>
+<div id="ボラティリティの定式化とその推定" class="section level2">
+<h2>ボラティリティの定式化とその推定</h2>
+<p><span class="math inline">\(S_t\)</span>を<span class="math inline">\(t\)</span>日における株式（株式に限らず為替などでもよいですが、以下株式とします）の価格とするとき、<span class="math inline">\(t\)</span>日における対前日の収益率<span class="math inline">\(r_t\)</span>は<span class="math inline">\(r_t=\log S_t - \log S_{t-1}\)</span>となります。このとき、ボラティリティとは下記の<span class="math inline">\(\sigma_t\)</span>、あるいは<span class="math inline">\(\sigma_t^2\)</span>を指します。</p>
+<p><span class="math display">\[\begin{align}
+r_t &amp;= E_{t-1}[r_t] + \epsilon_t,\\
+\epsilon_t &amp;= \sigma_t z_t, \quad \sigma_t &gt; 0, \quad z_t \sim i.i.d., \quad E[z_t] = 0, \quad Var[z_t] = 1
+\end{align}\]</span></p>
+<p>なお、一般に<span class="math inline">\(E_{t-1}[r_t]=0\)</span>であることが多くの実証研究で示されています。<span class="math inline">\(\sigma_t\)</span>と<span class="math inline">\(\sigma_t^2\)</span>のどちらをボラティリティと呼ぶかは文献による気がしますが、以降<span class="math inline">\(\sigma_t\)</span>をボラティリティと呼びます。</p>
+<p>さて、この<span class="math inline">\(\sigma_t\)</span>を推定する方法ですが、大きく分けて3通りあります。</p>
+<p>一つ目の方法は、過去一定期間の<span class="math inline">\(r_t\)</span>、すなわち<span class="math inline">\(\{r_{t-j},r_{t-j+1},\dots r_{t}\}\)</span>の標準偏差とする方法です。この方法は、標準偏差を計算しているサンプルである<span class="math inline">\(t-j,\dots,t\)</span>の間は<span class="math inline">\(\sigma_t\)</span>が一定と仮定しています。</p>
+<p>二つ目の方法は、<span class="math inline">\(\sigma_t\)</span>を統計的なモデルで定式化するものです。GARCHモデルはこのカテゴリに含まれます<a href="#fn1" class="footnote-ref" id="fnref1"><sup>1</sup></a>。このタイプのモデルは色々ありますが、本記事ではStochastic Volatility (SV) モデルを用います。SVモデルは下記のように定式化されます。</p>
+<p><span class="math display">\[\begin{align}
+y_t &amp;= \exp(x_t/2) \epsilon_t, \quad \epsilon_t \sim i.i.d. N(0,1),\\
+x_{t+1} &amp;= \mu + \phi(x_t - \mu) + \eta_t, \eta_t \sim i.i.d. N(0,\sigma_{\eta}^2),\\
+x_1 &amp; \sim N(0,\sigma_{\eta}^2/(1-\phi^2)) \quad（x_{t}の無条件分布）\\
+\end{align}\]</span></p>
+<p><span class="math inline">\(y_t\)</span>は対数収益率<span class="math inline">\(r_t\)</span>です。ボラティリティ<span class="math inline">\(\sigma_t\)</span>は<span class="math inline">\(\exp(x_t/2)\)</span>です。</p>
+<p>このモデルは、最初の式で<span class="math inline">\(E_{t-1}[r_t]=0\)</span>とした上で、ボラティリティ<span class="math inline">\(\sigma_t\)</span>の2乗の対数値<span class="math inline">\(x_t\)</span>がAR(1)モデルに従うということを意味します。<span class="math inline">\(|\phi|&lt;1\)</span>とします<a href="#fn2" class="footnote-ref" id="fnref2"><sup>2</sup></a>。</p>
+<p>このモデルは非線形な状態空間モデル（1本目の式が観測方程式、2本目の式が状態方程式）ですので、粒子フィルタかStanなどのMCMCで推定することになります。今回はStanを用います。</p>
+<p>三つ目の方法としては、以上二つのように収益率<span class="math inline">\(r_t\)</span>の時系列から<span class="math inline">\(\sigma_t\)</span>を推定するのではなく、分単位のような細かい収益率データを用いて直接<span class="math inline">\(\sigma_t\)</span>を求めるアプローチがあります。本記事からは外れるので詳細は触れませんが、<span class="math inline">\(t\)</span>日における1分間隔や5分間隔程度の細かい間隔の収益率の2乗を1日分足し合わせたものが<span class="math inline">\(\sigma_t\)</span>の推定量になり、この推定量をRealized Volatility<a href="#fn3" class="footnote-ref" id="fnref3"><sup>3</sup></a>と呼びます。</p>
+</div>
+<div id="実装" class="section level2">
+<h2>実装</h2>
+<div id="データの整形" class="section level3">
+<h3>データの整形</h3>
+<p>2001/6/25～2022/1/30のTOPIXを用いました。データは私が口座を持っている証券会社からCSVでダウンロードしました。</p>
+<p>CSVのパスを与えると、不要な行・列を飛ばして読み込み、終値の前日に対する対数変化率（100倍してパーセント表記にする）を計算する関数を作っています。1日ラグを取る都合上、初日の対数変化率はNAになるため、1行目を削除しています。</p>
+<p>closeは終値、retは対前日の対数変化率を指します。</p>
+<pre><code>## # A tibble: 5,047 x 3
+##    date       close    ret
+##    &lt;date&gt;     &lt;dbl&gt;  &lt;dbl&gt;
+##  1 2001-06-26 1296.  0.352
+##  2 2001-06-27 1288. -0.585
+##  3 2001-06-28 1279. -0.749
+##  4 2001-06-29 1301.  1.72 
+##  5 2001-07-02 1287. -1.09 
+##  6 2001-07-03 1293.  0.504
+##  7 2001-07-04 1278  -1.20 
+##  8 2001-07-05 1275. -0.259
+##  9 2001-07-06 1254. -1.67 
+## 10 2001-07-09 1238. -1.26 
+## # ... with 5,037 more rows</code></pre>
+</div>
+<div id="stanによるコード" class="section level3">
+<h3>Stanによるコード</h3>
+<p>上で挙げたSVモデルをStanコードにします。これを“script/model.stan”というファイル名で保存します。</p>
+<pre class="stan fold-show"><code>data {
+  int N;
+  vector[N] y;
+}
+
+parameters {
+  vector[N] x;
+  real mu;
+  real&lt;lower=-1,upper=1&gt; phi;
+  real&lt;lower=0&gt; sigma_eta;
+}
+
+transformed parameters {
+  real phi_beta;
+  phi_beta = (phi+1)/2;
+  real sigma_eta_square;
+  sigma_eta_square = sigma_eta^2;
+}
+
+model {
+  mu ~ normal(0,1);
+  phi_beta ~ beta(20,1.5);
+  sigma_eta_square ~ inv_gamma(5.0/2,0.05/2);
+  
+  // Stanのnormalの引数は分散ではなく標準偏差
+  x[1] ~ normal(mu,sigma_eta/sqrt((1-phi^2)));
+  x[2:N] ~ normal(mu + phi * (x[1:(N-1)] - mu),sigma_eta);
+  y ~ normal(0,exp(x/2));
+}
+
+generated quantities {
+  vector[N] vol;
+  vol = exp(x/2);
+}</code></pre>
+<p>以下、実装のポイントについて説明します。</p>
+<ul>
+<li>Stanのnormalの引数の2個目は、分散ではなく標準偏差を記します。
+<ul>
+<li>確率変数<span class="math inline">\(X\)</span>が平均<span class="math inline">\(\mu\)</span>、分散<span class="math inline">\(\sigma^2\)</span>（つまり標準偏差<span class="math inline">\(\sigma\)</span>）の正規分布に従うことを<span class="math inline">\(X \sim N(\mu,\sigma^2)\)</span>と書きますが、StanではN ~ (mu,sigma^2)ではなくN ~ (mu,sigma)と書きます。</li>
+</ul></li>
+<li>y ~ normal(0,exp(x/2))の部分
+<ul>
+<li>正規分布の再生性より、平均<span class="math inline">\(\mu\)</span>、分散<span class="math inline">\(\sigma^2\)</span>の正規分布に従う確率変数<span class="math inline">\(X\)</span>を定数<span class="math inline">\(c\)</span>倍した確率変数<span class="math inline">\(cX\)</span>は、平均<span class="math inline">\(\mu\)</span>、分散<span class="math inline">\(c^2 \sigma^2\)</span>の正規分布に従います。つまり、<span class="math inline">\(cX \sim N(\mu,c^2 \sigma^2)\)</span>となることを利用しています。</li>
+</ul></li>
+<li><span class="math inline">\(\mu, \phi, \sigma_{\eta}\)</span>の事前分布は、SVモデルの元の論文であるKim, Shephard and Chib (1998) <a href="#fn4" class="footnote-ref" id="fnref4"><sup>4</sup></a>や、それを日本株に適用した大森, 渡部 (2007)<a href="#fn5" class="footnote-ref" id="fnref5"><sup>5</sup></a> にある下記の値を用いました。無情報事前分布ではなく、これらの事前分布を書いてあげると収束しやすくなります。IGは逆ガンマ分布です。<span class="math inline">\(\phi \sim Uniform(-1,1)\)</span>でもいいとは思います。</li>
+</ul>
+<p><span class="math display">\[\begin{align}
+\mu &amp; \sim N(0,1),\\
+\frac{\phi+1}{2} &amp; \sim Beta(20,1.5),\\
+\sigma_{\eta}^2 &amp; \sim IG(5/2, 0.05/2)\\
+\end{align}\]</span></p>
+<ul>
+<li><p><span class="math inline">\(x[1]\)</span>の式を省略すると収束しにくくなります。</p></li>
+<li><p>generated quantitiesの項のvolが今回求めたいボラティリティです。<span class="math inline">\(x\)</span>からR上で求めることもできますがStanで求めておきます。</p></li>
+</ul>
+</div>
+<div id="モデルの推定と結果の抽出" class="section level3">
+<h3>モデルの推定と結果の抽出</h3>
+<p>chains=4,iter=30000,warmup=15000としました。Core i9-9900Kで2時間程度で推定できました。</p>
+<p>省略しますがrstan::stan_traceで見られるchain plotは綺麗に混ざり合っており、全てのパラメータでRhat&lt;1.01となっています。</p>
+<pre class="r"><code>mod &lt;- rstan::stan(
+  here(&quot;script/model.stan&quot;),
+  data=list(
+    N=nrow(df),
+    y=df$ret
+  ),
+  chains=4,
+  iter=30000,
+  warmup=15000,
+  seed=1234
+)</code></pre>
+<p>volの中央値と95%信頼区間を取り出します。rstan::extract<a href="#fn6" class="footnote-ref" id="fnref6"><sup>6</sup></a>によって、vol[1]～vol[N]のNが行数、iter ×chainが列数である行列の推定値が取り出せるので、そこからapplyで中央値と2.5%点、97.5%点を取り出します。</p>
+<pre class="r"><code>extract_param &lt;- function(model,param_name,confidence_interval=0.95) {
+  mat &lt;- rstan::extract(model,param_name)[[1]]
+  
+  ci_upper &lt;- confidence_interval+(1-confidence_interval)/2
+  ci_lower &lt;- (1-confidence_interval)/2
+  
+  res &lt;- data.frame(
+    median=apply(mat,2,function(x){quantile(x,0.5)}),
+    mean=apply(mat,2,function(x){mean(x)}),
+    lower=apply(mat,2,function(x){quantile(x,ci_upper)}),
+    upper=apply(mat,2,function(x){quantile(x,ci_lower)})
+  )
+}
+
+vol &lt;- extract_param(mod,&quot;vol&quot;) %&gt;% 
+  add_column(date=df$date,.before=1)</code></pre>
+</div>
+</div>
+<div id="結果" class="section level2">
+<h2>結果</h2>
+<p>こちらが結果です。</p>
+<ul>
+<li>上のグラフが推定されたTOPIXのボラティリティ（<span class="math inline">\(\sigma_t\)</span>）、下のグラフはTOPIXの終値です。</li>
+<li>上のグラフは赤い線がボラティリティ、青いバンドはその95%信頼区間です。</li>
+<li>横軸の数字は年の下2桁です。</li>
+</ul>
+<pre class="r"><code>res &lt;- left_join(vol,df,by=&quot;date&quot;)
+
+plot_vol &lt;- res %&gt;% 
+  ggplot(aes(x=date))+theme_light()+
+  geom_ribbon(aes(ymin=lower,ymax=upper),fill=&quot;lightsteelblue1&quot;,alpha=0.5)+
+  geom_line(aes(y=lower),color=&quot;lightsteelblue1&quot;,alpha=0.5)+
+  geom_line(aes(y=upper),color=&quot;lightsteelblue1&quot;,alpha=0.5)+
+  geom_line(aes(y=median),color=&quot;firebrick&quot;)+
+  scale_x_date(breaks=scales::date_breaks(&quot;1 year&quot;),date_labels=&quot;%y&quot;)+
+  labs(x=&quot;date&quot;,y=&quot;volatility&quot;)
+
+plot_close &lt;- res %&gt;% 
+  select(date,close) %&gt;% 
+  ggplot(aes(x=date,y=close))+theme_light()+geom_line()+
+  scale_x_date(breaks=scales::date_breaks(&quot;1 year&quot;),date_labels=&quot;%y&quot;)+
+  labs(x=&quot;date&quot;,y=&quot;close&quot;)
+
+patchwork::wrap_plots(plot_vol,plot_close,ncol=1)</code></pre>
+<p><img src="images/20220201_svmodel_result.png" /></p>
+<p>リーマンショックが2008/9/15、東日本大震災が2011/3/11、コロナ禍の急落が2020年前半ですが、ちょうどその辺りでボラティリティが高まっていることが分かります。</p>
+<p>ちなみに、上のグラフで<span class="math inline">\(\sigma_t=1\)</span>というのは、<span class="math inline">\(r_t\)</span>の分散が1%ということです。</p>
+<p>なお、<span class="math inline">\(\phi\)</span>の推定値は下記の通り非常に1に近くなっています。SVモデルの式より、<span class="math inline">\(\phi\)</span>はボラティリティの変動がどの程度後をひくかのパラメータです。これが1に近いということは持続性が非常に高い（ボラティリティ・クラスタリング<a href="#fn7" class="footnote-ref" id="fnref7"><sup>7</sup></a>と言います）ことを示します。通常1に近い値となります<a href="#fn8" class="footnote-ref" id="fnref8"><sup>8</sup></a>。</p>
+<pre class="r"><code>params %&gt;% 
+  filter(param==&quot;phi&quot;)</code></pre>
+<pre><code>## # A tibble: 1 x 11
+##   param  mean  se_mean      sd `2.5%` `25%` `50%` `75%` `97.5%` n_eff  Rhat
+##   &lt;chr&gt; &lt;dbl&gt;    &lt;dbl&gt;   &lt;dbl&gt;  &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+## 1 phi   0.972 0.000185 0.00516  0.962 0.969 0.973 0.976   0.982  779.  1.00</code></pre>
+</div>
+<div class="footnotes">
+<hr />
+<ol>
+<li id="fn1"><p>GARCHモデルは疑似最尤法でパラメータが求まるので、粒子フィルタやStanなどで推定する必要がないのがメリットです。<a href="#fnref1" class="footnote-back">↩︎</a></p></li>
+<li id="fn2"><p><span class="math inline">\(x_t\)</span>は定常な過程と仮定しています。<a href="#fnref2" class="footnote-back">↩︎</a></p></li>
+<li id="fn3"><p>参考になる論文は例えばこちらがあります。渡部敏明, 佐々木浩二 (2006), 「ARCH型モデルと"Realized Volatilityによるボラティリティ予測とバリュー・アット・リスク」, 金融研究, 25 別冊(2), 39-74.<a href="#fnref3" class="footnote-back">↩︎</a></p></li>
+<li id="fn4"><p>Kim, S., N. Shephard, and S. Chib (1998), “Stochastic Volatility: Likelihood Inference and Comparison with ARCH Models”, Review of Economic Studies, 65, 361-393.<a href="#fnref4" class="footnote-back">↩︎</a></p></li>
+<li id="fn5"><p>大森裕浩, 渡部敏明 (2007), 「MCMC法とその確率的ボラティリティモデルへの応用」CIRJEディスカッションペーパー, J-173, 1-39.<a href="#fnref5" class="footnote-back">↩︎</a></p></li>
+<li id="fn6"><p>library(rstan)の後にlibrary(magrittr)するとrstan::extractがmagrittr::extractでオーバーライドされるので、コード上では“rstan::”と名前空間を明示しておくのがいいです。<a href="#fnref6" class="footnote-back">↩︎</a></p></li>
+<li id="fn7"><p>ボラティリティが上昇（低下）するとしばらくボラティリティが高い（低い）日が続くこと。株式に限らず、金融市場でよく見られる現象です。<a href="#fnref7" class="footnote-back">↩︎</a></p></li>
+<li id="fn8"><p>SVモデルを推定した文献をサーベイすると<span class="math inline">\(\phi\)</span>の推定値は0.8から0.995までの値となっているという論文があります（Jacquier, E., N. Polson, and P. Rossi (2004), “Bayesian Analysis of Stochastic Volatility Models (with Discussion)”, Journal of Business &amp; Economic Statistics, 12, 371-417.）。<a href="#fnref8" class="footnote-back">↩︎</a></p></li>
+</ol>
+</div>
+
+
+
+
+</div>
+
+<script>
+
+// add bootstrap table styles to pandoc tables
+function bootstrapStylePandocTables() {
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
+}
+$(document).ready(function () {
+  bootstrapStylePandocTables();
+});
+
+
+</script>
+
+<!-- tabsets -->
+
+<script>
+$(document).ready(function () {
+  window.buildTabsets("TOC");
+});
+
+$(document).ready(function () {
+  $('.tabset-dropdown > .nav-tabs > li').click(function () {
+    $(this).parent().toggleClass('nav-tabs-open');
+  });
+});
+</script>
+
+<!-- code folding -->
+<script>
+$(document).ready(function () {
+  window.initializeCodeFolding("hide" === "show");
+});
+</script>
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
