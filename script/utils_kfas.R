@@ -37,7 +37,7 @@ grid_search_KFAS <- function(model,range_grids,num,parallel=TRUE) {
 # afiltconf <- cbind(afilt+sqrt(Pfilt)*qnorm(0.025),afilt+sqrt(Pfilt)*qnorm(0.975))
 # kfs$aはnumeric型だがkfs$attやkfs$alphahatはts型なので、後者はas.numericする必要がある（しないとpivot_longerでエラーが出る）
 # predict(fit$model,interval="confidence",filtered=T)はベータの推定値ではない（smoothedの場合、filteredならfiltered=Tにする）
-extract_param <- function(kfs,param_name,date,confidence_interval=0.95) {
+extract_param_kfas <- function(kfs,param_name,confidence_interval=0.95) {
   idx_param_of_std_error <- which(colnames(kfs$att)==param_name)
   upper <- confidence_interval+(1-confidence_interval)/2
   lower <- (1-confidence_interval)/2
@@ -47,7 +47,6 @@ extract_param <- function(kfs,param_name,date,confidence_interval=0.95) {
     smoothed=as.numeric(kfs$alphahat[,param_name]),
     std_error_smoothed=sqrt(kfs$V[idx_param_of_std_error,idx_param_of_std_error,])
   ) %>% 
-    add_column(date=date,.before=1) %>% 
     mutate(
       filtered_upper=filtered+qnorm(upper)*std_error_filtered,
       filtered_lower=filtered+qnorm(lower)*std_error_filtered,

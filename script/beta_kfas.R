@@ -50,7 +50,8 @@ kfs
 
 
 # 推定されたベータ値を取り出しプロットする --------------------------------------------------------------------
-res <- extract_param(kfs,"ret_topix",df$date,0.95)
+res <- extract_param_kfas(kfs,"ret_topix",0.95) %>% 
+  add_column(date=df$date,.before=1)
 res <- full_join(df,res,by="date") %>% 
   slice(51:nrow(.))
 

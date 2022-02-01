@@ -156,7 +156,7 @@ kfs <- KFS(fit$model,filtering=c("state","mean"),smoothing=c("state","mean"))
 
 ```{r,eval=FALSE}
 # 推定されたベータ値を取り出しプロットする --------------------------------------------------------------------
-extract_param <- function(kfs,param_name,date,confidence_interval=0.95) {
+extract_param_kfas <- function(kfs,param_name,confidence_interval=0.95) {
   idx_param_of_std_error <- which(colnames(kfs$att)==param_name)
   upper <- confidence_interval+(1-confidence_interval)/2
   lower <- (1-confidence_interval)/2
@@ -166,7 +166,6 @@ extract_param <- function(kfs,param_name,date,confidence_interval=0.95) {
     smoothed=as.numeric(kfs$alphahat[,param_name]),
     std_error_smoothed=sqrt(kfs$V[idx_param_of_std_error,idx_param_of_std_error,])
   ) %>% 
-    add_column(date=date,.before=1) %>% 
     mutate(
       filtered_upper=filtered+qnorm(upper)*std_error_filtered,
       filtered_lower=filtered+qnorm(lower)*std_error_filtered,
@@ -175,7 +174,8 @@ extract_param <- function(kfs,param_name,date,confidence_interval=0.95) {
     )
 }
 
-res <- extract_param(kfs,"ret_topix",df$date,0.95)
+res <- extract_param_kfas(kfs,"ret_topix",0.95) %>% 
+  add_column(date=df$date,.before=1)
 res <- full_join(df,res,by="date") %>% 
   slice(51:nrow(.))
 ```
