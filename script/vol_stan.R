@@ -22,7 +22,7 @@ df <- topix %>%
 
 # 推定 ----------------------------------------------------------------------
 mod <- rstan::stan(
-  here("script/model.stan"),
+  here("script/svmodel.stan"),
   data=list(
     N=nrow(df),
     y=df$ret

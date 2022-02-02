@@ -23,7 +23,7 @@ model {
   sigma_eta_square ~ inv_gamma(5.0/2,0.05/2);
   
   // Stanのnormalの引数は分散ではなく標準偏差
-  x[1] ~ normal(mu,sigma_eta/sqrt((1-phi^2)));
+  x[1] ~ normal(mu,sigma_eta/sqrt(1-phi^2));
   x[2:N] ~ normal(mu + phi * (x[1:(N-1)] - mu),sigma_eta);
   y ~ normal(0,exp(x/2));
 }
