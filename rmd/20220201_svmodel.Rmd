@@ -42,37 +42,39 @@ $S_t$を$t$日における株式（株式に限らず為替などでもよいで
 [^1]: どちらをボラティリティと呼ぶかは文献による気がします。
 
 \begin{align}
-r_t &= E_{t-1}[r_t] + \epsilon_t,\\
+r_t &= E_{t-1}[r_t] + \epsilon_t \\
 \epsilon_t &= \sigma_t z_t, \quad \sigma_t > 0, \quad z_t \sim i.i.d., \quad E[z_t] = 0, \quad Var[z_t] = 1
 \end{align}
 
-なお、一般に$E_{t-1}[r_t]=0$であることが多くの実証研究で示されています。$\sigma_t$と$\sigma_t^2$のどちらをボラティリティと呼ぶかは文献による気がしますが、以降$\sigma_t$をボラティリティと呼びます。
+なお、一般に$E_{t-1}[r_t]=0$であることが多くの実証研究で示されています。$\sigma_t$と$\sigma_t^2$のどちらをボラティリティと呼ぶかは文献によりますが、以降$\sigma_t$をボラティリティと呼びます。
 
-さて、この$\sigma_t$を推定する方法ですが、大きく分けて3通りあります。
+この$\sigma_t$を推定する方法は大きく分けて三通りあります。
 
-一つ目の方法は、過去一定期間の$r_t$、すなわち$\{r_{t-j},r_{t-j+1},\dots r_{t}\}$の標準偏差とする方法です。この方法は、標準偏差を計算しているサンプルである$t-j,\dots,t$の間は$\sigma_t$が一定と仮定しています。
+一つ目の方法は、$\sigma_t$を過去一定期間の$r_t$、すなわち$\{r_{t-j},r_{t-j+1},\dots r_{t}\}$の標準偏差とする方法です。この方法は、標準偏差を計算しているサンプルである$t-j,\dots,t$の間は$\sigma_t$が一定と仮定していますが実際はそうではありません。より精緻に求めるなら以下の二つの方法を用いることになります。
 
-二つ目の方法は、$\sigma_t$を統計的なモデルで定式化するものです。GARCHモデルはこのカテゴリに含まれます[^1]。このタイプのモデルは色々ありますが、本記事ではStochastic Volatility (SV) モデルを用います。SVモデルは下記のように定式化されます。
+二つ目の方法は、$\sigma_t$を統計的なモデルで定式化するものです。GARCHモデルはこのカテゴリに含まれます[^1]。このタイプのモデルは色々ありますが、本記事ではStochastic Volatility (SV) モデルを用います。
+
+SVモデルは以下のように定式化されます。
 
 \begin{align}
-y_t &= \exp(x_t/2) \epsilon_t, \quad \epsilon_t \sim i.i.d. N(0,1),\\
-x_{t+1} &= \mu + \phi(x_t - \mu) + \eta_t, \eta_t \sim i.i.d. N(0,\sigma_{\eta}^2),\\
-x_1 & \sim N(0,\sigma_{\eta}^2/(1-\phi^2)) \quad（x_{t}の無条件分布）\\
+y_t &= \exp(x_t/2) \epsilon_t, \quad \epsilon_t \sim i.i.d. N(0,1) \\
+x_{t+1} &= \mu + \phi(x_t - \mu) + \eta_t, \eta_t \sim i.i.d. N(0,\sigma_{\eta}^2) \\
+x_1 & \sim N(0,\sigma_{\eta}^2/(1-\phi^2)) \quad（x_1の無条件分布） 
 \end{align}
 
 [^1]: GARCHモデルは疑似最尤法でパラメータが求まるので、粒子フィルタやStanなどで推定する必要がないのがメリットです。
 
-$y_t$は対数収益率$r_t$です。ボラティリティ$\sigma_t$は$\exp(x_t/2)$です。
+$y_t$は対数収益率$r_t$であり、ボラティリティ$\sigma_t$は$\exp(x_t/2)$です。
 
-このモデルは、最初の式で$E_{t-1}[r_t]=0$とした上で、ボラティリティ$\sigma_t$の2乗の対数値$x_t$がAR(1)モデルに従うということを意味します。$|\phi|<1$とします[^2]。
+このSVモデルは、最初の式で$E_{t-1}[r_t]=0$とした上で、ボラティリティ$\sigma_t$の2乗の対数値$x_t$がAR(1)モデルに従うことを意味します。$|\phi|<1$とします[^2]。
 
 [^2]: $x_t$は定常な過程と仮定しています。
 
 このモデルは非線形な状態空間モデル（1本目の式が観測方程式、2本目の式が状態方程式）ですので、粒子フィルタかStanなどのMCMCで推定することになります。今回はStanを用います。
 
-三つ目の方法としては、以上二つのように収益率$r_t$の時系列から$\sigma_t$を推定するのではなく、分単位のような細かい収益率データを用いて直接$\sigma_t$を求めるアプローチがあります。本記事からは外れるので詳細は触れませんが、$t$日における1分間隔や5分間隔程度の細かい間隔の収益率の2乗を1日分足し合わせたものが$\sigma_t$の推定量になり、この推定量をRealized Volatility[^3]と呼びます。
+三つ目の方法としては、以上二つのように収益率$r_t$の時系列から$\sigma_t$を推定するのではなく、分単位のような細かい収益率データを用いて直接$\sigma_t$を求めるアプローチがあります。本記事からは外れるので詳細は触れませんが、$t$日における1分間隔や5分間隔程度の細かい間隔の収益率の2乗を1日分足し合わせたものが$\sigma_t$の推定量になることが知られています。この推定量をRealized Volatility[^3]と呼びます。
 
-[^3]: 参考になる論文は例えばこちらがあります。渡部敏明, 佐々木浩二 (2006),  「ARCH型モデルと"Realized Volatilityによるボラティリティ予測とバリュー・アット・リスク」, 金融研究, 25 別冊(2), 39-74.
+[^3]: 参考になる論文は例えばこちらがあります。渡部敏明, 佐々木浩二 (2006),  「ARCH型モデルと"Realized Volatility"によるボラティリティ予測とバリュー・アット・リスク」, 金融研究, 25 別冊(2), 39-74.
 
 ## 実装
 
@@ -82,14 +84,14 @@ $y_t$は対数収益率$r_t$です。ボラティリティ$\sigma_t$は$\exp(x_t
 
 CSVのパスを与えると、不要な行・列を飛ばして読み込み、終値の前日に対する対数変化率（100倍してパーセント表記にする）を計算する関数を作っています。1日ラグを取る都合上、初日の対数変化率はNAになるため、1行目を削除しています。
 
-closeは終値、retは対前日の対数変化率を指します。
+closeは終値、retは対前日の対数変化率（100倍したもの）を指します。
 
 ```{r,include=FALSE}
 params <- read_csv(here("params.csv"))
 vol <- read_csv(here("vol.csv"))
 ```
 
-```{r,echo=FALSE}
+```{r}
 library(tidyverse)
 library(lubridate)
 library(KFAS)
@@ -115,7 +117,7 @@ df
 
 ### Stanによるコード
 
-上で挙げたSVモデルをStanコードにします。これを"script/model.stan"というファイル名で保存します。
+上で挙げたSVモデルをStanコードにします。これを"script/svmodel.stan"というファイル名で保存します。
 
 ```{stan,output.var="tmp",eval=FALSE,class.source="fold-show"}
 data {
@@ -143,7 +145,7 @@ model {
   sigma_eta_square ~ inv_gamma(5.0/2,0.05/2);
   
   // Stanのnormalの引数は分散ではなく標準偏差
-  x[1] ~ normal(mu,sigma_eta/sqrt((1-phi^2)));
+  x[1] ~ normal(mu,sigma_eta/sqrt(1-phi^2));
   x[2:N] ~ normal(mu + phi * (x[1:(N-1)] - mu),sigma_eta);
   y ~ normal(0,exp(x/2));
 }
@@ -156,18 +158,19 @@ generated quantities {
 
 以下、実装のポイントについて説明します。
 
-- Stanのnormalの引数の2個目は、分散ではなく標準偏差を記します。
+- Stanのnormalの引数の2個目は、分散ではなく標準偏差です。
   - 確率変数$X$が平均$\mu$、分散$\sigma^2$（つまり標準偏差$\sigma$）の正規分布に従うことを$X \sim N(\mu,\sigma^2)$と書きますが、StanではN ~ (mu,sigma^2)ではなくN ~ (mu,sigma)と書きます。
 
 - y ~ normal(0,exp(x/2))の部分
-  - 正規分布の再生性より、平均$\mu$、分散$\sigma^2$の正規分布に従う確率変数$X$を定数$c$倍した確率変数$cX$は、平均$\mu$、分散$c^2 \sigma^2$の正規分布に従います。つまり、$cX \sim N(\mu,c^2 \sigma^2)$となることを利用しています。
+  - 正規分布の再生性より、平均$\mu$、分散$\sigma^2$の正規分布に従う確率変数$X$を定数$c$倍した確率変数$cX$は、平均$c \mu$、分散$c^2 \sigma^2$の正規分布に従います。つまり、$cX \sim N(c \mu,c^2 \sigma^2)$となります。
+  - このことより、$y \sim N(0, \sigma_{\eta}^2/(1-\phi^2)$となります。
 
-- $\mu, \phi, \sigma_{\eta}$の事前分布は、SVモデルの元の論文であるKim, Shephard and Chib (1998) [^4]や、それを日本株に適用した大森, 渡部 (2007)[^5] にある下記の値を用いました。無情報事前分布ではなく、これらの事前分布を書いてあげると収束しやすくなります。IGは逆ガンマ分布です。$\phi \sim Uniform(-1,1)$でもいいとは思います。
+- $\mu, \phi, \sigma_{\eta}$の事前分布は、SVモデルの元の論文であるKim, Shephard and Chib (1998) [^4]や、それを日本株に適用した大森, 渡部 (2007)[^5] にある下記の値を用いました。無情報事前分布ではなく、これらの事前分布を書いてあげると収束しやすくなります。IGは逆ガンマ分布です。また、2本目の式は$\phi \sim Uniform(-1,1)$でもいいとは思います。
 
 \begin{align}
-\mu & \sim N(0,1),\\
-\frac{\phi+1}{2} & \sim Beta(20,1.5),\\
-\sigma_{\eta}^2 & \sim IG(5/2, 0.05/2)\\
+\mu & \sim N(0,1) \\
+\frac{\phi+1}{2} & \sim Beta(20,1.5) \\
+\sigma_{\eta}^2 & \sim IG(5/2, 0.05/2)
 \end{align}
 
 - $x[1]$の式を省略すると収束しにくくなります。
@@ -185,7 +188,7 @@ chains=4,iter=30000,warmup=15000としました。Core i9-9900Kで2時間程度�
 
 ```{r,eval=FALSE}
 mod <- rstan::stan(
-  here("script/model.stan"),
+  here("script/svmodel.stan"),
   data=list(
     N=nrow(df),
     y=df$ret
@@ -197,12 +200,12 @@ mod <- rstan::stan(
 )
 ```
 
-volの中央値と95%信頼区間を取り出します。rstan::extract[^6]によって、vol[1]～vol[N]のNが行数、iter ×chainが列数である行列の推定値が取り出せるので、そこからapplyで中央値と2.5%点、97.5%点を取り出します。
+volの中央値と95%信頼区間を求めます。rstan::extract[^6]によって、行数がiter ×chain、列数がvol[1]～vol[N]のNの行列でvol[1]～vol[N}の推定値を取り出せるので、そこからapplyでvol[1]～vol[N}の中央値と2.5%点、97.5%点を得ます。
 
-[^6]: library(rstan)の後にlibrary(magrittr)するとrstan::extractがmagrittr::extractでオーバーライドされるので、コード上では"rstan::"と名前空間を明示しておくのがいいです。
+[^6]: extractという名前の関数はmagrittrにもあります。そのため、library(rstan)の後にlibrary(magrittr)すると、extract()で呼び出される関数はmagrittr::extractになるため、rstan::extractと名前空間を明示しておくのがいいです。
 
 ```{r,eval=FALSE}
-extract_param <- function(model,param_name,confidence_interval=0.95) {
+extract_param_stan <- function(model,param_name,confidence_interval=0.95) {
   mat <- rstan::extract(model,param_name)[[1]]
   
   ci_upper <- confidence_interval+(1-confidence_interval)/2
@@ -216,7 +219,7 @@ extract_param <- function(model,param_name,confidence_interval=0.95) {
   )
 }
 
-vol <- extract_param(mod,"vol") %>% 
+vol <- extract_param_stan(mod,"vol") %>% 
   add_column(date=df$date,.before=1)
 ```
 
@@ -225,6 +228,7 @@ vol <- extract_param(mod,"vol") %>%
 こちらが結果です。
 
 - 上のグラフが推定されたTOPIXのボラティリティ（$\sigma_t$）、下のグラフはTOPIXの終値です。
+  - 上のグラフで$\sigma_t=a$であれば、$r_t$の標準偏差がa[%]ということです。
 - 上のグラフは赤い線がボラティリティ、青いバンドはその95%信頼区間です。
 - 横軸の数字は年の下2桁です。
 
@@ -253,14 +257,12 @@ patchwork::wrap_plots(plot_vol,plot_close,ncol=1)
 
 リーマンショックが2008/9/15、東日本大震災が2011/3/11、コロナ禍の急落が2020年前半ですが、ちょうどその辺りでボラティリティが高まっていることが分かります。
 
-ちなみに、上のグラフで$\sigma_t=1$というのは、$r_t$の分散が1%ということです。
-
-なお、$\phi$の推定値は下記の通り非常に1に近くなっています。SVモデルの式より、$\phi$はボラティリティの変動がどの程度後をひくかのパラメータです。これが1に近いということは持続性が非常に高い（ボラティリティ・クラスタリング[^7]と言います）ことを示します。通常1に近い値となります[^8]。
+なお、$\phi$の推定値は下記の通り非常に1に近くなっています。SVモデルの式より、$\phi$はボラティリティの変動がどの程度後をひくかのパラメータです。$\phi$が1に近いということは、ボラティリティの変動は持続性が非常に高い[^7]ことを示します。通常1に近い値となります[^8]。
 
 ```{r}
 params %>% 
   filter(param=="phi")
 ```
 
-[^7]: ボラティリティが上昇（低下）するとしばらくボラティリティが高い（低い）日が続くこと。株式に限らず、金融市場でよく見られる現象です。
+[^7]: ボラティリティが上昇（低下）するとしばらくボラティリティが高い（低い）日が続くということであり、この現象をボラティリティ・クラスタリングと言います。株式に限らず、金融市場でよく見られる現象です。
 [^8]: SVモデルを推定した文献をサーベイすると$\phi$の推定値は0.8から0.995までの値となっているという論文があります（Jacquier, E., N. Polson, and P. Rossi (2004), "Bayesian Analysis of Stochastic Volatility Models (with Discussion)", Journal of Business & Economic Statistics, 12, 371-417.）。
