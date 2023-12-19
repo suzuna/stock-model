@@ -1,13 +1,14 @@
 library(tidyverse)
+library(httr)
 library(rstan)
 library(bayesplot)
+library(patchwork)
 library(here)
 library(logger)
 
 
 # Stanのおまじない（上は並列化、下はstanコードが変わらない限り再コンパイルしない）
-# options(mc.cores=parallel::detectCores())
-options(mc.cores=4)
+options(mc.cores=parallel::detectCores())
 rstan_options(auto_write=TRUE)
 
 
@@ -53,7 +54,7 @@ logger::log_info("start")
 fit <- rstan::sampling(
   mod,
   data=list(N=nrow(df), y=df$ret),
-  chains=4, iter=11000, warmup=1000, thin=1, seed=1234
+  chains=4, iter=110000, warmup=10000, thin=50, seed=1234, refresh=500
 )
 logger::log_info("end")
 saveRDS(fit, here("sv_model.rds"))
@@ -62,16 +63,21 @@ saveRDS(fit, here("sv_model.rds"))
 # モデル診断 -------------------------------------------------------------------
 # fit <- readRDS(here("sv_model.rds"))
 bayesplot::mcmc_rhat_hist(bayesplot::rhat(fit))
+bayesplot::mcmc_rhat_data(bayesplot::rhat(fit))
 bayesplot::mcmc_neff_hist(bayesplot::neff_ratio(fit))
+bayesplot::mcmc_neff_data(bayesplot::neff_ratio(fit))
 bayesplot::mcmc_acf_bar(fit, pars=c("mu", "phi", "sigma_eta"))
 bayesplot::mcmc_trace(fit, pars=c("mu", "phi", "sigma_eta"))
+bayesplot::ppc_dens_overlay(df$ret, rstan::extract(fit)$y_pred[1:10,])
+bayesplot::ppc_error_hist(df$ret, rstan::extract(fit)$y_pred[1:10,])
 
 
 # パラメータのプロット --------------------------------------------------------------
+print(fit, pars=c("mu", "phi", "sigma_eta"), digits_summary=3)
+
 mat <- rstan::extract(fit, "vol")[[1]]
 vol_stat <- tibble::tibble(
   vol_median=apply(mat, 2, \(x) quantile(x, 0.5)),
-  vol_mean=apply(mat, 2, \(x) mean(x)),
   vol_lower=apply(mat, 2, \(x) quantile(x, 0.025)),
   vol_upper=apply(mat, 2, \(x) quantile(x, 0.975))
 ) |> 
@@ -100,5 +106,4 @@ p_topix <- res |>
   labs(x="date (year)", y="TOPIX close")
 patchwork::wrap_plots(p_vol, p_topix, ncol=1)
 
-print(fit, pars="phi", digits=3)
 bayesplot::mcmc_hist(fit, pars="phi")

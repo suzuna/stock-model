@@ -32,4 +32,9 @@ model {
 generated quantities {
   vector[N] vol;
   vol = exp(x/2);
+  
+  vector[N] y_pred;
+  for (i in 1:N) {
+    y_pred[i] = normal_rng(0, exp(x[i]/2));
+  }
 }
