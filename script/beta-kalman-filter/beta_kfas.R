@@ -1,25 +1,40 @@
 library(tidyverse)
-library(lubridate)
+library(quantmod)
 library(KFAS)
 library(here)
 
 
-source(here("script/utils.R"),encoding="UTF-8")
-source(here("script/utils_kfas.R"),encoding="UTF-8")
+source(here("script/beta-kalman-filter/utils_kfas.R"),encoding="UTF-8")
 
 
 # データの読み込み ----------------------------------------------------------------
-tepco <- read_stockcsv_daily(here("data/9501_tepcoHD.csv"),"9501_tepcoHD")
-tokyogas <- read_stockcsv_daily(here("data/9531_tokyogas.csv"),"9531_tokyogas")
-topix <- read_stockcsv_daily(here("data/topix.csv"),"0000_topix")
-nikkei <- read_stockcsv_daily(here("data/nikkei.csv"),"0001_nikkei")
+# xts型
+stock <- quantmod::getSymbols("9501.T", from="2007-01-01", to="2023-12-29", auto.assign=FALSE)
+nikkei <- quantmod::getSymbols("^N225", from="2007-01-01", to="2023-12-29", auto.assign=FALSE)
 
-df <- left_join(
-  tepco %>% 
-    select(date,close,ret),
-  topix %>% 
-    select(date,close,ret) %>% 
-    rename(close_topix=close,ret_topix=ret),
+df_stock <- stock %>% 
+  as.data.frame() %>% 
+  tibble::rownames_to_column(var="date") %>% 
+  purrr::set_names(c("date", "open", "high", "low", "close", "volume", "adjusted")) %>% 
+  as_tibble() %>% 
+  mutate(date=as.Date(date)) %>% 
+  mutate(ret=(log(close) - log(lag(close)))*100)
+df_nikkei <- nikkei %>% 
+  as.data.frame() %>% 
+  tibble::rownames_to_column(var="date") %>% 
+  purrr::set_names(c("date", "open", "high", "low", "close", "volume", "adjusted")) %>% 
+  as_tibble() %>% 
+  mutate(date=as.Date(date)) %>% 
+  mutate(ret=(log(close) - log(lag(close)))*100)
+  
+
+df <- inner_join(
+  df_stock %>% 
+    select(date, close, ret) %>% 
+    rename(close_stock=close, ret_stock=ret),
+  df_nikkei %>% 
+    select(date, close, ret) %>% 
+    rename(close_market=close, ret_market=ret),
   by="date"
 ) %>% 
   # 最初の1日目の対数変化率がNAなのを除外
@@ -27,9 +42,13 @@ df <- left_join(
 
 
 # KFASでベータの推定 --------------------------------------------------------------------
-mod <- SSModel(
+mod <- KFAS::SSModel(
+  # 観測誤差の分散
   H=NA,
-  ret ~ SSMregression(~ret_topix-1,Q=NA)-1,
+  # SSMregression内の-1は状態方程式に切片がないことを、
+  # SSMregression外の-1は観測方程式に切片（alpha）がないことを示す
+  # Qは状態誤差の分散
+  ret_stock ~ KFAS::SSMregression(~ret_market-1, Q=NA),
   data=df
 )
 
@@ -37,49 +56,37 @@ mod <- SSModel(
 # range_grids <- -2:2
 # tictoc::tic()
 # このoptimsを見て、尤度が大きい初期値をinits_bestに手で設定するのも良い
-# optims <- grid_search_KFAS(mod,range_grids,2,TRUE)
+# optims <- grid_search_KFAS(mod, range_grids, 2, TRUE)
 # tictoc::toc()
 
 # 決め打ち
 inits_best <- c(0,0)
-fit <- fitSSM(mod,inits=inits_best,method="BFGS")
+fit <- KFAS::fitSSM(mod, inits=inits_best, method="BFGS")
 # smoothingにdisturbanceを指定しないとresiduals(res_kfas4,type="state")で状態の誤差を取得できない
-# kfs <- KFS(fit$model,filtering=c("state","mean"),smoothing=c("state","mean","disturbance"))
-kfs <- KFS(fit$model,filtering=c("state","mean"),smoothing=c("state","mean"))
-kfs
+kfs <- KFAS::KFS(fit$model, filtering=c("state", "mean"), smoothing=c("state", "mean", "disturbance"))
 
 
 # 推定されたベータ値を取り出しプロットする --------------------------------------------------------------------
-res <- extract_param_kfas(kfs,"ret_topix",0.95) %>% 
-  add_column(date=df$date,.before=1)
-res <- full_join(df,res,by="date") %>% 
+res <- extract_param_kfas(kfs, "ret_market", 0.95) %>% 
+  add_column(date=df$date, .before=1)
+res <- full_join(df, res, by="date") %>% 
   slice(51:nrow(.))
-
-# res %>%
-#   slice(50:nrow(.)) %>%
-#   select(date,filtered,filtered_upper,filtered_lower) %>%
-#   pivot_longer(cols=-date,names_to="param",values_to="value") %>%
-#   ggplot(aes(date,value,color=param))+geom_line()+theme_light()+
-#   scale_x_date(breaks=scales::date_breaks("1 year"),date_labels="%y")+
-#   ggsci::scale_color_aaas()
 
 # geom_ribbon ver
 plot_beta <- res %>%
-  select(date,filtered,filtered_upper,filtered_lower) %>%
-  ggplot(aes(x=date))+theme_light()+
-  geom_ribbon(aes(ymin=filtered_lower,ymax=filtered_upper),fill="lightsteelblue1",alpha=0.5)+
-  geom_line(aes(y=filtered_lower),color="lightsteelblue1",alpha=0.5)+
-  geom_line(aes(y=filtered_upper),color="lightsteelblue1",alpha=0.5)+
-  geom_line(aes(y=filtered),color="firebrick")+
-  scale_x_date(breaks=scales::date_breaks("1 year"),date_labels="%y")+
-  scale_y_continuous(breaks=seq(-2,5,0.5),minor_breaks=seq(-2,5,0.1))+
-  labs(x="date",y="beta")
-  # geom_vline(xintercept=as.Date("2011-03-11"))
-  # annotate("label",x=df2$date[1],y=Inf,label="red: filtered (estimated)\nblue: ±95%CI",hjust=0,vjust=1.5,alpha=0)
-
+  ggplot(aes(x=date))+
+  theme_light()+
+  geom_ribbon(aes(ymin=filtered_lower, ymax=filtered_upper), fill="lightsteelblue1", alpha=0.5)+
+  geom_line(aes(y=filtered_lower), color="lightsteelblue1", alpha=0.5)+
+  geom_line(aes(y=filtered_upper), color="lightsteelblue1", alpha=0.5)+
+  geom_line(aes(y=filtered), color="firebrick")+
+  scale_x_date(breaks=scales::date_breaks("1 year"), date_labels="%y")+
+  scale_y_continuous(breaks=seq(-2, 5, 0.5), minor_breaks=seq(-2, 5, 0.1))+
+  labs(x="date", y="beta")
 plot_close <- res %>% 
-  select(date,close) %>% 
-  ggplot(aes(x=date,y=close))+theme_light()+geom_line()+
-  scale_x_date(breaks=scales::date_breaks("1 year"),date_labels="%y")+
-  labs(x="date",y="close")
-patchwork::wrap_plots(plot_beta,plot_close,ncol=1)
+  ggplot(aes(x=date, y=close_stock))+
+  theme_light()+
+  geom_line()+
+  scale_x_date(breaks=scales::date_breaks("1 year"), date_labels="%y")+
+  labs(x="date", y="close")
+patchwork::wrap_plots(plot_beta, plot_close, ncol=1)
