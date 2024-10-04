@@ -15,13 +15,13 @@ transformed parameters {
   vector[2] mu;
 
   for (t in 1:T) {
-    cov[t][1, 1] <- sigma1^2;
-    cov[t][1, 2] <- sigma1*sigma2*rho[t];
-    cov[t][2, 1] <- sigma1*sigma2*rho[t];
-    cov[t][2, 2] <- sigma2^2;
+    cov[t][1, 1] = sigma1^2;
+    cov[t][1, 2] = sigma1*sigma2*rho[t];
+    cov[t][2, 1] = sigma1*sigma2*rho[t];
+    cov[t][2, 2] = sigma2^2;
   }
-  mu[1] <- 0;
-  mu[2] <- 0;
+  mu[1] = 0;
+  mu[2] = 0;
 }
 
 model {
